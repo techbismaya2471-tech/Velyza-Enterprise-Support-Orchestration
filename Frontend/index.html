@@ -765,6 +765,9 @@ function addMsg(role, txt, caseInfo, showResolveButtons) {
         <button class="btn-resolve btn-no"  onclick="resolveNo(this)">&#10007; No, need help</button>
       `;
       bub.appendChild(btnDiv);
+      msgInput.disabled = true;
+      sendBtn.disabled = true;
+      micBtn.disabled = true; // ← YEH BHI
     }
   } else {
     bub.textContent = txt;
@@ -781,6 +784,10 @@ function addMsg(role, txt, caseInfo, showResolveButtons) {
 // ── RESOLVE BUTTONS ───────────────────────────────────────────────────────────
 function resolveYes(btn) {
    window.speechSynthesis.cancel();
+     msgInput.disabled = false;
+    sendBtn.disabled = false;
+    micBtn.disabled = false; // ← YEH BHI
+
   btn.closest('.resolve-btns').remove();
   addMsg('bot', 'Great! Happy I could help. Feel free to reach out anytime. Have a wonderful day!');
   sessionId = null;
@@ -789,6 +796,10 @@ function resolveYes(btn) {
 
 function resolveNo(btn) {
   window.speechSynthesis.cancel();
+  msgInput.disabled = false;
+  sendBtn.disabled = false;
+  micBtn.disabled = false; // ← YEH BHI
+
   btn.closest('.resolve-btns').remove();
   addMsg('user', 'No, I still need help');
   process('I still need help, please connect me to support');
