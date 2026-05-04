@@ -234,7 +234,7 @@ header {
 .av {
   width: 36px; height: 36px; border-radius: 50%;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; margin-top: 2px; flex-shrink: 0;
+  font-size: 13px; font-weight: 700; margin-top: 2px;
 }
 
 .av.bot {
@@ -267,6 +267,110 @@ header {
   color: white;
   border-radius: 16px 4px 16px 16px;
   box-shadow: 0 4px 20px rgba(41,121,255,0.35);
+}
+
+/* ─── FORMATTED RESPONSE ─────────────────── */
+.bubble.bot ol {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0;
+  list-style: none;
+  counter-reset: step-counter;
+}
+
+.bubble.bot ol li {
+  line-height: 1.75;
+  color: var(--text-1);
+  counter-increment: step-counter;
+  position: relative;
+  padding-left: 28px;
+}
+
+.bubble.bot ol li::before {
+  content: counter(step-counter);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 20px;
+  height: 20px;
+  background: rgba(41,121,255,0.18);
+  border: 1px solid rgba(41,121,255,0.35);
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.bubble.bot ol li strong {
+  color: #90c8ff;
+  font-weight: 600;
+}
+
+.bubble.bot p {
+  margin: 5px 0;
+  line-height: 1.78;
+}
+
+.bubble.bot p:first-child { margin-top: 0; }
+.bubble.bot p:last-child { margin-bottom: 0; }
+
+.bubble.bot .note-line {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(41,121,255,0.07);
+  border-left: 2px solid rgba(41,121,255,0.4);
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.65;
+}
+
+/* ─── YES/NO BUTTONS ─────────────────────── */
+.resolve-btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn-resolve {
+  flex: 1;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-yes {
+  background: rgba(0,229,160,0.08);
+  border: 1px solid rgba(0,229,160,0.28);
+  color: var(--success);
+}
+
+.btn-yes:hover {
+  background: rgba(0,229,160,0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,229,160,0.2);
+}
+
+.btn-no {
+  background: rgba(255,77,109,0.07);
+  border: 1px solid rgba(255,77,109,0.22);
+  color: var(--danger);
+}
+
+.btn-no:hover {
+  background: rgba(255,77,109,0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(255,77,109,0.15);
 }
 
 /* ─── CASE CARD ──────────────────────────── */
@@ -414,8 +518,8 @@ header {
   .input-inner { padding: 6px 6px 6px 10px; }
   .bubble { max-width: 85%; font-size: 13px; }
   #msgInput { font-size: 12px; }
-.btns { gap: 6px; }
-.btn-mic, .btn-send { width: 36px; height: 36px; }
+  .btns { gap: 6px; }
+  .btn-mic, .btn-send { width: 36px; height: 36px; }
 }
 
 .hidden { display: none !important; }
@@ -503,18 +607,14 @@ svg { display: block; }
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-
-const CHAT_ENDPOINT='https://velyza-enterprise-support-orchestra.vercel.app/chat';
+const CHAT_ENDPOINT = 'https://velyza-enterprise-support-orchestra.vercel.app/chat';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let accessToken = null;
-let sessionId   = null;
+let sessionId    = null;
 let lastCategory = null;
-let recording   = false;
-let isVoiceMode = false;
-let recog       = null;
-
-
+let recording    = false;
+let isVoiceMode  = false;
+let recog        = null;
 
 // ── DOM ───────────────────────────────────────────────────────────────────────
 const chatWrap = document.getElementById('chatWrap');
@@ -529,9 +629,6 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
-// ── GET TOKEN ─────────────────────────────────────────────────────────────────
-
-
 // ── AUTO RESIZE ───────────────────────────────────────────────────────────────
 msgInput.addEventListener('input', () => {
   msgInput.style.height = 'auto';
@@ -543,19 +640,9 @@ msgInput.addEventListener('keydown', e => {
 });
 
 // ── SEND ──────────────────────────────────────────────────────────────────────
-function detectCategory(txt) {
-    const t = txt.toLowerCase();
-    if (t.includes('billing') || t.includes('charge') || t.includes('payment') || t.includes('invoice') || t.includes('refund')) return 'Billing';
-    if (t.includes('login') || t.includes('password') || t.includes('sign in') || t.includes('access') || t.includes('account')) return 'Login';
-    if (t.includes('technical') || t.includes('not working') || t.includes('error') || t.includes('slow') || t.includes('crash') || t.includes('device')) return 'Technical';
-    if (t.includes('subscription') || t.includes('plan') || t.includes('upgrade') || t.includes('cancel')) return 'Subscription';
-    return null;
-}
 async function doSend() {
   const txt = msgInput.value.trim();
   if (!txt) return;
-  
- 
   msgInput.value = '';
   msgInput.style.height = 'auto';
   welcome.classList.add('hidden');
@@ -569,25 +656,20 @@ async function doSend() {
 async function process(txt) {
   const tid = showTyping();
   try {
-    //const token = await getToken();
-    //console.log('TOKEN:', token ? token.substring(0,20) : 'NULL');
-    //console.log('ENDPOINT:', CHAT_ENDPOINT);
     const payload = {
-      message:   txt,
-      sessionId: sessionId || null,
-      source:    'web',
+      message:      txt,
+      sessionId:    sessionId || null,
+      source:       'web',
       lastCategory: lastCategory || null
     };
-    const r = await fetch('https://velyza-enterprise-support-orchestra.vercel.app/chat', {
+    const r = await fetch(CHAT_ENDPOINT, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
     });
     removeTyping(tid);
     if (!r.ok) throw new Error('API Error: ' + r.status);
     const d = await r.json();
-
-    // Save sessionId for conversation continuity
     if (d.sessionId && !sessionId) sessionId = d.sessionId;
     if (d.category) lastCategory = d.category;
     const msg = d.message || 'Something went wrong. Please try again.';
@@ -609,6 +691,45 @@ function parseCaseInfo(msg, d) {
   return { num: m[1], escalated: /escalat/i.test(msg), category: '' };
 }
 
+// ── FORMAT MESSAGE ────────────────────────────────────────────────────────────
+function formatMessage(txt) {
+  const lines = txt.split('\n');
+  let html = '';
+  let inList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    if (!line) {
+      if (inList) { html += '</ol>'; inList = false; }
+      continue;
+    }
+
+    // Numbered list: "1." "2." etc
+    const listMatch = line.match(/^(\d+)\.\s+(.+)/);
+    if (listMatch) {
+      if (!inList) { html += '<ol>'; inList = true; }
+      let content = listMatch[2];
+      // Bold "Word Word:" at start of item
+      content = content.replace(/^([A-Z][^:]{0,40}:)/, '<strong>$1</strong>');
+      // Bold **text**
+      content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html += `<li>${content}</li>`;
+    } else {
+      if (inList) { html += '</ol>'; inList = false; }
+      line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      // "Important:" lines get note styling
+      if (/^important:/i.test(line)) {
+        html += `<div class="note-line">${line}</div>`;
+      } else {
+        html += `<p>${line}</p>`;
+      }
+    }
+  }
+
+  if (inList) html += '</ol>';
+  return html;
+}
+
 // ── RENDER MESSAGE ────────────────────────────────────────────────────────────
 function addMsg(role, txt, caseInfo) {
   const row = document.createElement('div');
@@ -620,7 +741,34 @@ function addMsg(role, txt, caseInfo) {
 
   const bub = document.createElement('div');
   bub.className = 'bubble ' + role;
-  bub.textContent = txt;
+
+  if (role === 'bot') {
+    bub.innerHTML = formatMessage(txt);
+
+    // Yes/No resolve buttons
+    const resolvedPhrases = [
+      'did this resolve',
+      'did this help',
+      'resolve your issue',
+      'resolved your issue',
+      'were these steps helpful',
+      'has this solved',
+      'connect you with our support',
+      'if not, i can connect'
+    ];
+    const showButtons = resolvedPhrases.some(p => txt.toLowerCase().includes(p));
+    if (showButtons) {
+      const btnDiv = document.createElement('div');
+      btnDiv.className = 'resolve-btns';
+      btnDiv.innerHTML = `
+        <button class="btn-resolve btn-yes" onclick="resolveYes(this)">&#10003; Yes, resolved</button>
+        <button class="btn-resolve btn-no"  onclick="resolveNo(this)">&#10007; No, need help</button>
+      `;
+      bub.appendChild(btnDiv);
+    }
+  } else {
+    bub.textContent = txt;
+  }
 
   if (caseInfo && role === 'bot') bub.appendChild(buildCard(caseInfo));
 
@@ -630,6 +778,19 @@ function addMsg(role, txt, caseInfo) {
   scroll();
 }
 
+// ── RESOLVE BUTTONS ───────────────────────────────────────────────────────────
+function resolveYes(btn) {
+  btn.closest('.resolve-btns').remove();
+  addMsg('bot', 'Great! Happy I could help. Feel free to reach out anytime. Have a wonderful day!');
+}
+
+function resolveNo(btn) {
+  btn.closest('.resolve-btns').remove();
+  addMsg('user', 'No, I still need help');
+  process('I still need help, please connect me to support');
+}
+
+// ── CASE CARD ─────────────────────────────────────────────────────────────────
 function buildCard(c) {
   const el = document.createElement('div');
   el.className = 'case-card';
@@ -656,9 +817,6 @@ function buildCard(c) {
   return el;
 }
 
-// ── SESSION END on tab close ──────────────────────────────────────────────────
-window.addEventListener('beforeunload', () => { sessionId = null; accessToken = null; });
-
 // ── TYPING ────────────────────────────────────────────────────────────────────
 function showTyping() {
   const id = 'ty' + Date.now();
@@ -677,7 +835,10 @@ function showTyping() {
 function removeTyping(id) { const el = document.getElementById(id); if (el) el.remove(); }
 function scroll() { setTimeout(() => chatWrap.scrollTop = chatWrap.scrollHeight, 60); }
 
-// ── VOICE ─────────────────────────────────────────────────────────────────────
+// ── SESSION RESET ─────────────────────────────────────────────────────────────
+window.addEventListener('beforeunload', () => { sessionId = null; });
+
+// ── VOICE INPUT ───────────────────────────────────────────────────────────────
 function toggleMic() {
   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
     alert('Voice input needs Chrome browser.'); return;
@@ -690,8 +851,7 @@ function toggleMic() {
   recog.interimResults = false;
   recog.continuous = false;
 
- // recog.onstart  = () => { recording = true;  micBtn.classList.add('on'); };
- recog.onstart  = () => { recording = true; isVoiceMode = true; micBtn.classList.add('on'); };
+  recog.onstart  = () => { recording = true; isVoiceMode = true; micBtn.classList.add('on'); };
   recog.onend    = () => { recording = false; micBtn.classList.remove('on'); if (msgInput.value.trim()) doSend(); };
   recog.onerror  = () => { recording = false; micBtn.classList.remove('on'); };
   recog.onresult = e => {
@@ -702,7 +862,8 @@ function toggleMic() {
 
   recog.start();
 }
-  // ── SPEAK (Text to Speech) ────────────────────────────────────────────────────
+
+// ── TEXT TO SPEECH ────────────────────────────────────────────────────────────
 function speak(text) {
   if (!text) return;
   window.speechSynthesis.cancel();
@@ -712,7 +873,6 @@ function speak(text) {
   utterance.pitch = 1;
   window.speechSynthesis.speak(utterance);
 }
-
 </script>
 </body>
 </html>
