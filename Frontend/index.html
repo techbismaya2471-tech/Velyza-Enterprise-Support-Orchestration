@@ -744,16 +744,17 @@ function addMsg(role, txt, caseInfo) {
     bub.innerHTML = formatMessage(txt);
 
     // Yes/No resolve buttons
-    const resolvedPhrases = [
-      'did this resolve',
-      'did this help',
-      'resolve your issue',
-      'resolved your issue',
-      'were these steps helpful',
-      'has this solved'
+   // const resolvedPhrases = [
+     // 'did this resolve',
+     // 'did this help',
+     // 'resolve your issue',
+     // 'resolved your issue',
+     // 'were these steps helpful',
+     // 'has this solved'
       
-    ];
-    const showButtons = resolvedPhrases.some(p => txt.toLowerCase().includes(p));
+   // ];
+    //const showButtons = resolvedPhrases.some(p => txt.toLowerCase().includes(p));
+    const showButtons = d.showResolveButtons === true;
     if (showButtons) {
       const btnDiv = document.createElement('div');
       btnDiv.className = 'resolve-btns';

@@ -42,7 +42,10 @@ app.post('/chat', async (req, res) => {
         timeout: 60000,
       }
     );
-    res.json(response.data);
+    //res.json(response.data);
+    const data = response.data;
+    const showResolveButtons = !data.caseNumber && data.escalated === false;
+    res.json({ ...data, showResolveButtons });
   } catch (error) {
     console.error('Error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Something went wrong' });
