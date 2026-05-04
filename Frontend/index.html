@@ -752,9 +752,8 @@ function addMsg(role, txt, caseInfo) {
       'resolve your issue',
       'resolved your issue',
       'were these steps helpful',
-      'has this solved',
-      'connect you with our support',
-      'if not, i can connect'
+      'has this solved'
+      
     ];
     const showButtons = resolvedPhrases.some(p => txt.toLowerCase().includes(p));
     if (showButtons) {
