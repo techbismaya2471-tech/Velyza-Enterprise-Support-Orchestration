@@ -1,4 +1,4 @@
-const CACHE = 'velyza-v2';
+const CACHE = 'velyza-v3';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -17,7 +17,7 @@ self.addEventListener('fetch', e => {
   if (e.request.url.includes('/chat') || 
       e.request.url.includes('vercel.app/chat')) {
     e.respondWith(fetch(e.request));
-    return;
+    return; 
   }
   // Static files — cache se lo
   e.respondWith(
