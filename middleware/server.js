@@ -44,7 +44,8 @@ app.post('/chat', async (req, res) => {
     );
     //res.json(response.data);
     const data = response.data;
-   const showResolveButtons = !data.caseNumber && data.escalated === false;
+   //const showResolveButtons = !data.caseNumber && data.escalated === false;
+   const showResolveButtons = data.message && data.message.includes('Did this resolve your issue');
   // const showResolveButtons = data.showResolveButtons === true;
     res.json({ ...data, showResolveButtons });
   } catch (error) {
