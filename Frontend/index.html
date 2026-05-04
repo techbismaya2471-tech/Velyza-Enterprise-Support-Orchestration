@@ -647,6 +647,7 @@ async function doSend() {
   msgInput.style.height = 'auto';
   welcome.classList.add('hidden');
   addMsg('user', txt);
+  document.querySelectorAll('.resolve-btns').forEach(el => el.remove());
   sendBtn.disabled = true;
   await process(txt);
   sendBtn.disabled = false;
