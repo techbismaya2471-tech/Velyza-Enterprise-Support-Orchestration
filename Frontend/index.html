@@ -700,24 +700,19 @@ function formatMessage(txt) {
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
     if (!line) {
-      if (inList) { html += '</ol>'; inList = false; }
       continue;
     }
 
-    // Numbered list: "1." "2." etc
     const listMatch = line.match(/^(\d+)\.\s+(.+)/);
     if (listMatch) {
       if (!inList) { html += '<ol>'; inList = true; }
       let content = listMatch[2];
-      // Bold "Word Word:" at start of item
       content = content.replace(/^([A-Z][^:]{0,40}:)/, '<strong>$1</strong>');
-      // Bold **text**
       content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       html += `<li>${content}</li>`;
     } else {
       if (inList) { html += '</ol>'; inList = false; }
       line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      // "Important:" lines get note styling
       if (/^important:/i.test(line)) {
         html += `<div class="note-line">${line}</div>`;
       } else {
