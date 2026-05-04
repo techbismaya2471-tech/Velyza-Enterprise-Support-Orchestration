@@ -16,9 +16,6 @@ public with sharing class NexaSupportRequestAction {
 
         @InvocableVariable
         public Boolean waitingForEmail;
-
-        @InvocableVariable
-        public Boolean showResolveButtons;
     }
 
     @InvocableMethod(label='Handle Nexa Support Request')
@@ -29,7 +26,6 @@ public with sharing class NexaSupportRequestAction {
             Response res = new Response();
             res.success = false;
             res.waitingForEmail = false;
-            res.showResolveButtons = false;
 
             String lastCategory = null;
             String cleanUserMessage = req.userMessage;
@@ -152,16 +148,17 @@ public with sharing class NexaSupportRequestAction {
                 ];
 
                 if (openCaseCount >= 2) {
+                    // ✅ CRITICAL: Vague request check FIRST (includes Escalation category)
                     if (String.isBlank(detectedCategory) || 
                         detectedCategory == 'General Inquiry' ||
                         detectedCategory == 'Escalation') {
                         res.success = true;
-                        res.showResolveButtons = false;
                         res.responseMessage = 'You currently have multiple open issues. Which issue do you want help with — billing, login, technical, or another issue? Is it urgent?';
                         results.add(res);
                         continue;
                     }
                     
+                    // ✅ If we reach here, specific category EXISTS
                     Boolean isTechnicalPhysical = (detectedCategory == NexaSupportConfig.CATEGORY_TECHNICAL && 
                                                     issueNature == NexaSupportConfig.ISSUE_NATURE_PHYSICAL);
                     
@@ -171,7 +168,6 @@ public with sharing class NexaSupportRequestAction {
                             wantsHumanSupport, issueNature, insightResult, cleanUserMessage
                         );
                         res.success = true;
-                        res.showResolveButtons = true;
                         res.responseMessage = msg;
                         results.add(res);
                         continue;
@@ -203,7 +199,6 @@ public with sharing class NexaSupportRequestAction {
                         
                         if (specificCase.Escalated__c == true) {
                             res.success = true;
-                            res.showResolveButtons = false;
                             res.responseMessage = 'Your existing case ' + specificCase.CaseNumber + 
                                 ' has already been escalated and our priority support team is actively working on it. You will be contacted soon.';
                             results.add(res);
@@ -215,7 +210,6 @@ public with sharing class NexaSupportRequestAction {
                             update specificCase;
                             
                             res.success = true;
-                            res.showResolveButtons = true;
                             res.responseMessage = 'We can see you have multiple open issues. Your case ' + specificCase.CaseNumber + 
                                 ' has been escalated to our priority support team with high priority. They will review all your open issues and get back to you as soon as possible.';
                             results.add(res);
@@ -223,7 +217,6 @@ public with sharing class NexaSupportRequestAction {
                         }
                     } else {
                         res.success = true;
-                        res.showResolveButtons = false;
                         res.responseMessage = 'We can see you have multiple open issues. Our priority support team has been notified and will review all your open issues and get back to you as soon as possible.';
                         results.add(res);
                         continue;
@@ -248,7 +241,6 @@ public with sharing class NexaSupportRequestAction {
                         Case autoCase = singleOpenCase[0];
                         if (autoCase.Escalated__c == true) {
                             res.success = true;
-                            res.showResolveButtons = false;
                             res.responseMessage = 'Your existing case ' + autoCase.CaseNumber + ' has already been escalated and our priority support team is actively working on it. You will be contacted soon.';
                             results.add(res);
                             continue;
@@ -258,14 +250,12 @@ public with sharing class NexaSupportRequestAction {
                         autoCase.OwnerId = humanSupportQueue.Id;
                         update autoCase;
                         res.success = true;
-                        res.showResolveButtons = true;
                         res.responseMessage = 'We understand your issue is still unresolved. Your existing case ' + autoCase.CaseNumber + ' has been escalated to our priority support team. They will follow up with you as soon as possible.';
                         results.add(res);
                         continue;
                     }
                 } else {
                     res.success = true;
-                    res.showResolveButtons = false;
                     res.responseMessage = 'We would be happy to connect you with our support team. Could you please tell us what type of issue you are facing — is it a billing concern, login issue, technical problem, or something else?';
                     results.add(res);
                     continue;
@@ -274,7 +264,6 @@ public with sharing class NexaSupportRequestAction {
 
             if (String.isBlank(detectedCategory)) {
                 res.success = false;
-                res.showResolveButtons = false;
                 res.responseMessage = NexaSupportConfig.MSG_UNSUPPORTED_REQUEST;
                 results.add(res);
                 continue;
@@ -286,7 +275,6 @@ public with sharing class NexaSupportRequestAction {
 
             if (!supportedCategories.contains(detectedCategory)) {
                 res.success = false;
-                res.showResolveButtons = false;
                 res.responseMessage = NexaSupportConfig.MSG_UNSUPPORTED_REQUEST;
                 results.add(res);
                 continue;
@@ -305,7 +293,6 @@ public with sharing class NexaSupportRequestAction {
 
                 if (openCaseCount == 0) {
                     res.success = true;
-                    res.showResolveButtons = false;
                     res.responseMessage = 'We could not find any open issues associated with your account. Could you please describe your issue so we can assist you?';
                     results.add(res);
                     continue;
@@ -341,7 +328,6 @@ public with sharing class NexaSupportRequestAction {
                                 wantsHumanSupport, issueNature, insightResult, cleanUserMessage
                             );
                             res.success = true;
-                            res.showResolveButtons = true;
                             res.responseMessage = msg;
                             results.add(res);
                             continue;
@@ -349,7 +335,6 @@ public with sharing class NexaSupportRequestAction {
 
                         if (followUpCase.Escalated__c == true) {
                             res.success = true;
-                            res.showResolveButtons = false;
                             res.responseMessage = 'Your existing case ' + followUpCase.CaseNumber + ' has already been escalated and our priority support team is actively working on it. You will be contacted soon.';
                             results.add(res);
                             continue;
@@ -360,7 +345,6 @@ public with sharing class NexaSupportRequestAction {
                         followUpCase.OwnerId = humanSupportQueue.Id;
                         update followUpCase;
                         res.success = true;
-                        res.showResolveButtons = true;
                         res.responseMessage = 'We understand your issue is still unresolved. Your existing case ' + followUpCase.CaseNumber + ' has been escalated to our priority support team with high priority. They will follow up with you as soon as possible.';
                         results.add(res);
                         continue;
@@ -368,7 +352,6 @@ public with sharing class NexaSupportRequestAction {
 
                 } else {
                     res.success = true;
-                    res.showResolveButtons = false;
                     res.responseMessage = 'You currently have multiple open issues. Which issue are you following up on — billing, login, technical, or another issue?';
                     results.add(res);
                     continue;
@@ -386,7 +369,6 @@ public with sharing class NexaSupportRequestAction {
             );
 
             res.success = true;
-            res.showResolveButtons = true;
             res.responseMessage = finalProcessingMessage;
             results.add(res);
         }
@@ -452,9 +434,9 @@ public with sharing class NexaSupportRequestAction {
                         originalUserMessage.toLowerCase().contains('another case')
                     );
                     if (!explicitNewCase) {
-                        return 'Your existing case ' + existingCase.CaseNumber + 
-                            ' has already been escalated and our priority support team is actively working on it. You will be contacted soon.';
-                    }
+        return 'Your existing case ' + existingCase.CaseNumber + 
+            ' has already been escalated and our priority support team is actively working on it. You will be contacted soon.';  // ✅ WITH CASE NUMBER
+    }
                 } else {
                     existingCase.Priority = NexaSupportConfig.PRIORITY_HIGH;
                     existingCase.Escalated__c = true;
