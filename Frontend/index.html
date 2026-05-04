@@ -673,7 +673,8 @@ async function process(txt) {
     if (d.sessionId && !sessionId) sessionId = d.sessionId;
     if (d.category) lastCategory = d.category;
     const msg = d.message || 'Something went wrong. Please try again.';
-    addMsg('bot', msg, parseCaseInfo(msg, d));
+    //addMsg('bot', msg, parseCaseInfo(msg, d));
+    addMsg('bot', msg, parseCaseInfo(msg, d), d.showResolveButtons);
     if (isVoiceMode) { speak(msg); isVoiceMode = false; }
   } catch(e) {
     removeTyping(tid);
@@ -729,7 +730,7 @@ function formatMessage(txt) {
 }
 
 // ── RENDER MESSAGE ────────────────────────────────────────────────────────────
-function addMsg(role, txt, caseInfo) {
+function addMsg(role, txt, caseInfo, showResolveButtons) {
   const row = document.createElement('div');
   row.className = 'msg-row ' + role;
 
@@ -754,7 +755,7 @@ function addMsg(role, txt, caseInfo) {
       
    // ];
     //const showButtons = resolvedPhrases.some(p => txt.toLowerCase().includes(p));
-    const showButtons = d.showResolveButtons === true;
+    const showButtons = showResolveButtons === true;
     if (showButtons) {
       const btnDiv = document.createElement('div');
       btnDiv.className = 'resolve-btns';
