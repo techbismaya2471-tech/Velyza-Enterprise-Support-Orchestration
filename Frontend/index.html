@@ -789,7 +789,8 @@ function resolveYes(btn) {
     micBtn.disabled = false; // ← YEH BHI
 
   btn.closest('.resolve-btns').remove();
-  addMsg('bot', 'Great! Happy I could help. Feel free to reach out anytime. Have a wonderful day!');
+ // addMsg('bot', 'Great! Happy I could help. Feel free to reach out anytime. Have a wonderful day!');
+ addMsg('bot', 'Great! Happy I could help. Feel free to reach out anytime. Have a wonderful day!', null, false);
   sessionId = null;
   lastCategory = null;
 }
