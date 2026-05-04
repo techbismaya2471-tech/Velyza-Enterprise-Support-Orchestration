@@ -782,6 +782,8 @@ function addMsg(role, txt, caseInfo) {
 function resolveYes(btn) {
   btn.closest('.resolve-btns').remove();
   addMsg('bot', 'Great! Happy I could help. Feel free to reach out anytime. Have a wonderful day!');
+  sessionId = null;
+  lastCategory = null;
 }
 
 function resolveNo(btn) {
