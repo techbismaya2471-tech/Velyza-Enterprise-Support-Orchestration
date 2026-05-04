@@ -11,7 +11,7 @@ app.use(cors({
 }));
 
 
-app.options('/(.*)', cors());
+//app.options('/(.*)', cors());
 app.use(express.json());
 
 // Step 1 — Salesforce se Token Lo
