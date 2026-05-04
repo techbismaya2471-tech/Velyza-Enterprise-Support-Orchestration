@@ -686,9 +686,7 @@ function parseCaseInfo(msg, d) {
   if (d && d.caseNumber) {
     return { num: d.caseNumber, escalated: d.escalated || false, category: d.category || '' };
   }
-  const m = msg.match(/case\s+\(?([\w\d]+)\)?/i);
-  if (!m) return null;
-  return { num: m[1], escalated: /escalat/i.test(msg), category: '' };
+  return null;
 }
 
 // ── FORMAT MESSAGE ────────────────────────────────────────────────────────────
