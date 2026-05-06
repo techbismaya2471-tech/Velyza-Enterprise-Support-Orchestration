@@ -5,7 +5,8 @@ const cors = require('cors');
 const app = express();
 
 // CORS — preflight explicitly handle karo pehle
-app.options('*', cors());
+//app.options('*', cors());
+app.options('/(.*)', cors());
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'OPTIONS'],
