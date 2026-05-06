@@ -1,20 +1,19 @@
-//require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 
 const app = express();
+
+// CORS — preflight explicitly handle karo pehle
+app.options('*', cors());
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-
-//app.options('/(.*)', cors());
 app.use(express.json());
 
-// Step 1 — Salesforce se Token Lo
 async function getSalesforceToken() {
   const response = await axios.post(
     `${process.env.SF_ORG_URL}/services/oauth2/token`,
@@ -27,7 +26,6 @@ async function getSalesforceToken() {
   return response.data.access_token;
 }
 
-// Step 2 — Frontend ki Call Suno aur Salesforce ko Forward Karo
 app.post('/chat', async (req, res) => {
   try {
     const token = await getSalesforceToken();
@@ -42,11 +40,8 @@ app.post('/chat', async (req, res) => {
         timeout: 60000,
       }
     );
-    //res.json(response.data);
     const data = response.data;
-   //const showResolveButtons = !data.caseNumber && data.escalated === false;
-   const showResolveButtons = data.message && data.message.includes('Did this resolve your issue');
-  // const showResolveButtons = data.showResolveButtons === true;
+    const showResolveButtons = data.message && data.message.includes('Did this resolve your issue');
     res.json({ ...data, showResolveButtons });
   } catch (error) {
     console.error('Error:', error.response?.data || error.message);
@@ -54,7 +49,6 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-// Server Start Karo
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Velyza Middleware running on port ${PORT}`);
