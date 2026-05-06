@@ -696,32 +696,46 @@ function formatMessage(txt) {
   const lines = txt.split('\n');
   let html = '';
   let inList = false;
+  let listItems = [];
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
-    if (!line) {
-      continue;
-    }
+    if (!line) continue;
 
     const listMatch = line.match(/^(\d+)\.\s+(.+)/);
+    const bulletMatch = line.match(/^[-•]\s+(.+)/);
+
     if (listMatch) {
-      if (!inList) { html += '<ol>'; inList = true; }
+      if (!inList) { inList = true; }
       let content = listMatch[2];
       content = content.replace(/^([A-Z][^:]{0,40}:)/, '<strong>$1</strong>');
       content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      html += `<li>${content}</li>`;
+      listItems.push(content);
     } else {
-      if (inList) { html += '</ol>'; inList = false; }
-      line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      if (/^important:/i.test(line)) {
-        html += `<div class="note-line">${line}</div>`;
+      if (inList) {
+        html += '<ol>' + listItems.map(item => `<li>${item}</li>`).join('') + '</ol>';
+        listItems = [];
+        inList = false;
+      }
+      if (bulletMatch) {
+        let content = bulletMatch[1];
+        content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html += `<p style="padding-left:12px">— ${content}</p>`;
       } else {
-        html += `<p>${line}</p>`;
+        line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        if (/^important:/i.test(line)) {
+          html += `<div class="note-line">${line}</div>`;
+        } else {
+          html += `<p>${line}</p>`;
+        }
       }
     }
   }
 
-  if (inList) html += '</ol>';
+  if (inList) {
+    html += '<ol>' + listItems.map(item => `<li>${item}</li>`).join('') + '</ol>';
+  }
+
   return html;
 }
 
