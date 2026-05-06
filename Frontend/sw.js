@@ -1,5 +1,5 @@
-const CACHE = 'velyza-v3';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'velyza-v4';
+const ASSETS = ['/', '/manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
