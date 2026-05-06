@@ -702,7 +702,11 @@ function parseCaseInfo(msg, d) {
       return { 
         num: match[1], 
         escalated: escalated, 
-        category: d && d.category ? d.category : '' 
+        category: (d && d.category) ? d.category : 
+          msg.toLowerCase().includes('billing') ? 'Billing' :
+          msg.toLowerCase().includes('login') ? 'Login' :
+          msg.toLowerCase().includes('technical') ? 'Technical' :
+          msg.toLowerCase().includes('subscription') ? 'Subscription' : ''
       };
     }
   }
@@ -851,7 +855,7 @@ function buildCard(c) {
   const priority = c.escalated ? 'High'        : 'Medium';
   const routing  = c.escalated ? 'Human Queue' : 'AI Support';
   const fillW    = c.escalated ? '85%'         : '45%';
-  const catLabel = c.category  ? c.category    : 'Support';
+  const catLabel = (c.category && c.category.trim() !== '') ? c.category : 'General Support';
 
   el.innerHTML = `
     <div class="card-top">
