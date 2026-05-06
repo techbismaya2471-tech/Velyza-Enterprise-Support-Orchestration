@@ -696,7 +696,17 @@ function formatMessage(txt) {
   const lines = txt.split('\n');
   let html = '';
   let inList = false;
+  let currentItem = null;
   let listItems = [];
+
+  function flushList() {
+    if (listItems.length > 0) {
+      html += '<ol>' + listItems.map(item => `<li>${item}</li>`).join('') + '</ol>';
+      listItems = [];
+    }
+    inList = false;
+    currentItem = null;
+  }
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
@@ -706,34 +716,33 @@ function formatMessage(txt) {
     const bulletMatch = line.match(/^[-•]\s+(.+)/);
 
     if (listMatch) {
-      if (!inList) { inList = true; }
+      if (currentItem !== null) listItems.push(currentItem);
+      inList = true;
       let content = listMatch[2];
       content = content.replace(/^([A-Z][^:]{0,40}:)/, '<strong>$1</strong>');
       content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      listItems.push(content);
+      currentItem = content;
+    } else if (bulletMatch && inList) {
+      let content = bulletMatch[1];
+      content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      currentItem += `<br><span style="padding-left:10px;color:var(--text-2)">— ${content}</span>`;
     } else {
       if (inList) {
-        html += '<ol>' + listItems.map(item => `<li>${item}</li>`).join('') + '</ol>';
-        listItems = [];
-        inList = false;
+        if (currentItem !== null) listItems.push(currentItem);
+        flushList();
       }
-      if (bulletMatch) {
-        let content = bulletMatch[1];
-        content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        html += `<p style="padding-left:12px">— ${content}</p>`;
+      line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      if (/^important:/i.test(line)) {
+        html += `<div class="note-line">${line}</div>`;
       } else {
-        line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        if (/^important:/i.test(line)) {
-          html += `<div class="note-line">${line}</div>`;
-        } else {
-          html += `<p>${line}</p>`;
-        }
+        html += `<p>${line}</p>`;
       }
     }
   }
 
   if (inList) {
-    html += '<ol>' + listItems.map(item => `<li>${item}</li>`).join('') + '</ol>';
+    if (currentItem !== null) listItems.push(currentItem);
+    flushList();
   }
 
   return html;
