@@ -28,18 +28,36 @@ public with sharing class NexaSupportRequestAction {
             res.waitingForEmail = false;
 
             String lastCategory = null;
+            String sessionId = null;
             String cleanUserMessage = req.userMessage;
-            if (String.isNotBlank(req.userMessage) && req.userMessage.contains('||lastCategory:')) {
-                Integer startIdx = req.userMessage.indexOf('||lastCategory:') + 15;
-                Integer endIdx = req.userMessage.lastIndexOf('||');
-                if (endIdx > startIdx) {
-                    lastCategory = req.userMessage.substring(startIdx, endIdx).trim();
-                    cleanUserMessage = req.userMessage.substring(0, req.userMessage.indexOf('||lastCategory:')).trim();
+
+            if (String.isNotBlank(req.userMessage)) {
+                String tempMsg = req.userMessage;
+
+                // Step 1 — sessionId pehle parse karo
+                if (tempMsg.contains('||sessionId:')) {
+                    Integer sStart = tempMsg.indexOf('||sessionId:') + 12;
+                    Integer sEnd = tempMsg.indexOf('||', sStart);
+                    if (sEnd > sStart) {
+                        sessionId = tempMsg.substring(sStart, sEnd).trim();
+                        tempMsg = tempMsg.substring(0, tempMsg.indexOf('||sessionId:')).trim();
+                    }
+                }
+
+                // Step 2 — lastCategory parse karo
+                if (tempMsg.contains('||lastCategory:')) {
+                    Integer lcStart = tempMsg.indexOf('||lastCategory:') + 15;
+                    Integer lcEnd = tempMsg.indexOf('||', lcStart);
+                    if (lcEnd > lcStart) {
+                        lastCategory = tempMsg.substring(lcStart, lcEnd).trim();
+                        cleanUserMessage = tempMsg.substring(0, tempMsg.indexOf('||lastCategory:')).trim();
+                    }
+                } else {
+                    cleanUserMessage = tempMsg;
                 }
             }
 
             if (String.isBlank(req.customerEmail)) {
-
                 Interaction_Log__c pendingLog = new Interaction_Log__c();
                 pendingLog.Query_Text__c = cleanUserMessage;
                 pendingLog.Response_Summary__c = 'Awaiting customer email before support processing.';
@@ -52,7 +70,9 @@ public with sharing class NexaSupportRequestAction {
                 pendingLog.Interaction_Timestamp__c = DateTime.now();
                 pendingLog.Resolution_Status__c = 'Unresolved';
                 pendingLog.Customer_Sentiment__c = 'Neutral';
-
+                if (String.isNotBlank(sessionId)) {
+                    pendingLog.Session_Id__c = sessionId;
+                }
                 insert pendingLog;
 
                 res.waitingForEmail = true;
@@ -119,6 +139,9 @@ public with sharing class NexaSupportRequestAction {
                 completedLog.Interaction_Timestamp__c = DateTime.now();
                 completedLog.Resolution_Status__c = 'Unresolved';
                 completedLog.Customer_Sentiment__c = 'Neutral';
+                if (String.isNotBlank(sessionId)) {
+                    completedLog.Session_Id__c = sessionId;
+                }
                 insert completedLog;
             }
 
@@ -148,7 +171,6 @@ public with sharing class NexaSupportRequestAction {
                 ];
 
                 if (openCaseCount >= 2) {
-                    // ✅ CRITICAL: Vague request check FIRST (includes Escalation category)
                     if (String.isBlank(detectedCategory) || 
                         detectedCategory == 'General Inquiry' ||
                         detectedCategory == 'Escalation') {
@@ -158,14 +180,13 @@ public with sharing class NexaSupportRequestAction {
                         continue;
                     }
                     
-                    // ✅ If we reach here, specific category EXISTS
                     Boolean isTechnicalPhysical = (detectedCategory == NexaSupportConfig.CATEGORY_TECHNICAL && 
                                                     issueNature == NexaSupportConfig.ISSUE_NATURE_PHYSICAL);
                     
                     if (isTechnicalPhysical) {
                         String msg = processSupportCase(
                             contacts[0], issueToProcess, detectedCategory,
-                            wantsHumanSupport, issueNature, insightResult, cleanUserMessage
+                            wantsHumanSupport, issueNature, insightResult, cleanUserMessage, sessionId
                         );
                         res.success = true;
                         res.responseMessage = msg;
@@ -196,7 +217,6 @@ public with sharing class NexaSupportRequestAction {
                     
                     if (!categoryCase.isEmpty()) {
                         Case specificCase = categoryCase[0];
-                        
                         if (specificCase.Escalated__c == true) {
                             res.success = true;
                             res.responseMessage = 'Your existing case ' + specificCase.CaseNumber + 
@@ -208,7 +228,6 @@ public with sharing class NexaSupportRequestAction {
                             specificCase.Escalated__c = true;
                             specificCase.OwnerId = humanSupportQueue.Id;
                             update specificCase;
-                            
                             res.success = true;
                             res.responseMessage = 'We can see you have multiple open issues. Your case ' + specificCase.CaseNumber + 
                                 ' has been escalated to our priority support team with high priority. They will review all your open issues and get back to you as soon as possible.';
@@ -296,7 +315,6 @@ public with sharing class NexaSupportRequestAction {
                     res.responseMessage = 'We could not find any open issues associated with your account. Could you please describe your issue so we can assist you?';
                     results.add(res);
                     continue;
-
                 } else if (openCaseCount == 1) {
                     Group humanSupportQueue = [
                         SELECT Id FROM Group
@@ -314,9 +332,7 @@ public with sharing class NexaSupportRequestAction {
                     if (!singleOpenCase.isEmpty()) {
                         Case followUpCase = singleOpenCase[0];
                         String existingCategory = followUpCase.Issue_Category__c;
-
                         String effectiveCategory = String.isNotBlank(lastCategory) ? lastCategory : detectedCategory;
-
                         Boolean isNewCategory =
                             String.isNotBlank(effectiveCategory) &&
                             effectiveCategory != 'General Inquiry' &&
@@ -325,7 +341,7 @@ public with sharing class NexaSupportRequestAction {
                         if (isNewCategory) {
                             String msg = processSupportCase(
                                 contacts[0], issueToProcess, effectiveCategory,
-                                wantsHumanSupport, issueNature, insightResult, cleanUserMessage
+                                wantsHumanSupport, issueNature, insightResult, cleanUserMessage, sessionId
                             );
                             res.success = true;
                             res.responseMessage = msg;
@@ -349,7 +365,6 @@ public with sharing class NexaSupportRequestAction {
                         results.add(res);
                         continue;
                     }
-
                 } else {
                     res.success = true;
                     res.responseMessage = 'You currently have multiple open issues. Which issue are you following up on — billing, login, technical, or another issue?';
@@ -365,7 +380,8 @@ public with sharing class NexaSupportRequestAction {
                 wantsHumanSupport,
                 issueNature,
                 insightResult,
-                cleanUserMessage
+                cleanUserMessage,
+                sessionId
             );
 
             res.success = true;
@@ -383,7 +399,8 @@ public with sharing class NexaSupportRequestAction {
         Boolean wantsHumanSupport,
         String issueNature,
         CustomerInsightService.InsightResult insightResult,
-        String originalUserMessage
+        String originalUserMessage,
+        String sessionId
     ) {
         Boolean forceEscalationFromInsight = insightResult.forceEscalation;
         Boolean forceHighPriorityFromInsight = insightResult.forceHighPriority;
@@ -434,14 +451,18 @@ public with sharing class NexaSupportRequestAction {
                         originalUserMessage.toLowerCase().contains('another case')
                     );
                     if (!explicitNewCase) {
-        return 'Your existing case ' + existingCase.CaseNumber + 
-            ' has already been escalated and our priority support team is actively working on it. You will be contacted soon.';  // ✅ WITH CASE NUMBER
-    }
+                        // Interaction_Log save karo
+                        saveCaseLog(sessionId, matchedContact.Id, existingCase.CaseNumber, true, detectedCategory, issueToProcess);
+                        return 'Your existing case ' + existingCase.CaseNumber + 
+                            ' has already been escalated and our priority support team is actively working on it. You will be contacted soon.';
+                    }
                 } else {
                     existingCase.Priority = NexaSupportConfig.PRIORITY_HIGH;
                     existingCase.Escalated__c = true;
                     existingCase.OwnerId = humanSupportQueue.Id;
                     update existingCase;
+                    // Interaction_Log save karo
+                    saveCaseLog(sessionId, matchedContact.Id, existingCase.CaseNumber, true, detectedCategory, issueToProcess);
 
                     if (totalOpenCases >= 2) {
                         return 'We can see you have multiple open issues. A new support case has been created and immediately escalated to our priority support team. They will review all your open issues and get back to you as soon as possible.';
@@ -457,8 +478,7 @@ public with sharing class NexaSupportRequestAction {
         if (detectedCategory == NexaSupportConfig.CATEGORY_TECHNICAL && 
             issueNature == NexaSupportConfig.ISSUE_NATURE_PHYSICAL) {
             requiresImmediateEscalation = true;
-        }
-        else if (totalOpenCases >= 2) {
+        } else if (totalOpenCases >= 2) {
             Boolean isTechnicalRemote = (detectedCategory == NexaSupportConfig.CATEGORY_TECHNICAL && 
                                           issueNature == NexaSupportConfig.ISSUE_NATURE_REMOTE);
             if (!isTechnicalRemote) {
@@ -500,6 +520,9 @@ public with sharing class NexaSupportRequestAction {
             newCase.OwnerId = humanSupportQueue.Id;
             update newCase;
 
+            // Interaction_Log save karo
+            saveCaseLog(sessionId, matchedContact.Id, newCase.CaseNumber, true, detectedCategory, issueToProcess);
+
             if (totalOpenCases >= 2) {
                 return 'We can see you have multiple open issues. A new support case has been created and immediately escalated to our priority support team. They will review all your open issues and get back to you as soon as possible.';
             }
@@ -507,8 +530,39 @@ public with sharing class NexaSupportRequestAction {
                 ' has been created and escalated to our human support team with high priority.';
         }
 
+        // Interaction_Log save karo
+        saveCaseLog(sessionId, matchedContact.Id, newCase.CaseNumber, false, detectedCategory, issueToProcess);
+
         return 'A new support case ' + newCase.CaseNumber +
             ' has been created successfully. Our team will continue working on your request. We will follow up within 24 hours.';
+    }
+
+    // Enterprise fix — Interaction_Log mein case info save karo
+    private static void saveCaseLog(String sessionId, Id contactId, String caseNumber, Boolean escalated, String category, String issueText) {
+        if (String.isBlank(sessionId)) return;
+        Interaction_Log__c log = new Interaction_Log__c();
+        log.Contact__c = contactId;
+        log.Session_Id__c = sessionId;
+        log.Correlation_Id__c = 'CASE_CREATED_' + sessionId;
+        //log.Response_Summary__c = caseNumber;
+        log.Response_Summary__c = '{"caseNumber":"' + caseNumber + '","escalated":' + escalated + ',"category":"' + category + '"}';
+        log.Escalated__c = escalated;
+        //log.Last_Classifier_Used__c = category;
+        log.Query_Text__c = issueText;
+        log.Source_Channel__c = NexaSupportConfig.SOURCE_CHANNEL_AGENTFORCE;
+        log.Channel_Type__c = 'Web';
+        log.Interaction_Timestamp__c = DateTime.now();
+        log.Resolution_Status__c = 'Unresolved';
+        log.Customer_Sentiment__c = 'Neutral';
+        log.Identity_Resolution_Status__c = 'Matched Existing Customer';
+        insert log;
+    }
+
+    private static String buildCaseResponse(String caseNum, Boolean escalated, String category, String message) {
+        String esc = (escalated == true) ? 'true' : 'false';
+        String cat = String.isNotBlank(category) ? category : '';
+        String num = String.isNotBlank(caseNum) ? caseNum : '';
+        return '[CASE:' + num + '][ESC:' + esc + '][CAT:' + cat + ']' + message;
     }
 
     private static String deriveChannelType(String source) {

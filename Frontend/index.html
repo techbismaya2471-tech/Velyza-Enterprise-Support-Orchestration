@@ -685,8 +685,26 @@ async function process(txt) {
 }
 
 function parseCaseInfo(msg, d) {
+  // Pehle structured fields check karo
   if (d && d.caseNumber) {
-    return { num: d.caseNumber, escalated: d.escalated || false, category: d.category || '' };
+    return { 
+      num: d.caseNumber, 
+      escalated: d.escalated || false, 
+      category: d.category || '' 
+    };
+  }
+  // Fallback — message text se case number extract karo
+  if (msg) {
+    const match = msg.match(/\b(\d{8})\b/);
+    if (match) {
+      const escalated = msg.toLowerCase().includes('escalated') || 
+                        msg.toLowerCase().includes('priority support');
+      return { 
+        num: match[1], 
+        escalated: escalated, 
+        category: d && d.category ? d.category : '' 
+      };
+    }
   }
   return null;
 }

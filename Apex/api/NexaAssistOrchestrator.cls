@@ -6,7 +6,6 @@ public with sharing class NexaAssistOrchestrator {
             String token = AgentApiService.getAccessToken();
 
             String activeSessionId;
-
             if (String.isNotBlank(req.sessionId)) {
                 activeSessionId = req.sessionId;
             } else {
@@ -15,11 +14,13 @@ public with sharing class NexaAssistOrchestrator {
                 activeSessionId = session.sessionId;
             }
 
-            // lastCategory ko message ke saath append karo
+            // sessionId + lastCategory append karo message mein
             String messageToSend = req.message;
             if (String.isNotBlank(req.lastCategory)) {
                 messageToSend = req.message + ' ||lastCategory:' + req.lastCategory + '||';
             }
+            // sessionId bhi append karo taaki Apex action use kar sake
+            messageToSend = messageToSend + ' ||sessionId:' + activeSessionId + '||';
 
             String agentReply = AgentApiService.sendMessage(
                 token,
@@ -31,6 +32,34 @@ public with sharing class NexaAssistOrchestrator {
             res.success   = true;
             res.message   = agentReply;
             res.sessionId = activeSessionId;
+
+            // Interaction_Log__c se case info query karo
+            List<Interaction_Log__c> caseLogs = [
+                SELECT Response_Summary__c
+                FROM Interaction_Log__c
+                WHERE Session_Id__c = :activeSessionId
+                AND Correlation_Id__c LIKE 'CASE_CREATED_%'
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+            // List<Interaction_Log__c> caseLogs = [
+            //     SELECT Response_Summary__c, Escalated__c, Last_Classifier_Used__c
+            //     FROM Interaction_Log__c
+            //     WHERE Session_Id__c = :activeSessionId
+            //       AND Correlation_Id__c LIKE 'CASE_CREATED_%'
+            //     ORDER BY CreatedDate DESC
+            //     LIMIT 1
+            // ];
+
+            if (!caseLogs.isEmpty()) {
+            String summary = caseLogs[0].Response_Summary__c;
+            if (String.isNotBlank(summary) && summary.startsWith('{')) {
+            Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(summary);
+            res.caseNumber = (String) parsed.get('caseNumber');
+            res.escalated  = (Boolean) parsed.get('escalated');
+            res.category   = (String) parsed.get('category');
+    }
+}
 
         } catch (Exception e) {
             res.success = false;
