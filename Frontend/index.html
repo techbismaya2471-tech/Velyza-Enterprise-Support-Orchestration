@@ -675,7 +675,8 @@ async function process(txt) {
     if (d.category) lastCategory = d.category;
     const msg = d.message || 'Something went wrong. Please try again.';
     //addMsg('bot', msg, parseCaseInfo(msg, d));
-    addMsg('bot', msg, parseCaseInfo(msg, d), d.showResolveButtons);
+    //addMsg('bot', msg, parseCaseInfo(msg, d), d.showResolveButtons);
+    addMsg('bot', msg, parseCaseInfo(msg, d, lastCategory), d.showResolveButtons);
     if (isVoiceMode) { speak(msg); isVoiceMode = false; }
   } catch(e) {
     removeTyping(tid);
@@ -684,7 +685,7 @@ async function process(txt) {
   }
 }
 
-function parseCaseInfo(msg, d) {
+function parseCaseInfo(msg, d,fallbackCategory) {
   // Pehle structured fields check karo
   if (d && d.caseNumber) {
     return { 
@@ -702,11 +703,7 @@ function parseCaseInfo(msg, d) {
       return { 
         num: match[1], 
         escalated: escalated, 
-        category: (d && d.category) ? d.category : 
-          msg.toLowerCase().includes('billing') ? 'Billing' :
-          msg.toLowerCase().includes('login') ? 'Login' :
-          msg.toLowerCase().includes('technical') ? 'Technical' :
-          msg.toLowerCase().includes('subscription') ? 'Subscription' : ''
+       category: (d && d.category) ? d.category : fallbackCategory || ''
       };
     }
   }
